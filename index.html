@@ -544,6 +544,16 @@
       .chat-fab { background: #14161C; box-shadow: 0 14px 30px rgba(6,10,16,0.30); }
       .chat-panel { border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 26px 60px rgba(6,10,16,0.28); }
       ::selection { background: var(--accent-soft); }
+    
+      /* Collapsible filters */
+      .filterbar { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; }
+      .filter-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--chip-bg); color: var(--ink); font: inherit; font-weight: 600; letter-spacing: 0.02em; cursor: pointer; }
+      .filter-toggle:hover { border-color: var(--accent); color: var(--accent-strong); }
+      .filter-toggle .fsum { font-weight: 500; color: var(--accent-strong); letter-spacing: 0; }
+      .filter-toggle .chev { transition: transform 0.2s ease; font-size: 0.8em; }
+      .filter-toggle.closed .chev { transform: rotate(-90deg); }
+      .filter-clear { background: none; border: none; font: inherit; font-weight: 600; color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 2px; }
+      #filterPanel.collapsed { display: none; }
     </style>
   </head>
   <body>
@@ -609,7 +619,11 @@
         </div>
         <p class="sec-sub">These are the dates we&rsquo;re working this season. Prices move too much to print honestly, so they&rsquo;re not on the cards — hit <b>Get seats</b> on any show and we&rsquo;ll quote the real number for the seats actually available. Don&rsquo;t see your show? <a href="sms:+17156120292?&amp;body=Hi%20FrontRowPlug%2C%20I%27m%20looking%20for%20tickets%20to%3A%20">Text us the name</a> — we cover most of what&rsquo;s on the road between December and May.</p>
 
-        <div class="filters" role="group" aria-label="Filter shows">
+        <div class="filterbar">
+            <button id="filterToggle" class="filter-toggle" type="button" aria-expanded="true" aria-controls="filterPanel">Filters <span id="filterSummary" class="fsum"></span> <span class="chev" aria-hidden="true">&#9662;</span></button>
+            <button id="filterClear" class="filter-clear" type="button" hidden>Clear all</button>
+          </div>
+          <div class="filters" id="filterPanel" role="group" aria-label="Filter shows">
           <div class="chiprow" id="monthRow">
             <span class="lbl">Month</span>
             <button class="chip" data-month="all" aria-pressed="true">All season</button>
@@ -1186,5 +1200,46 @@
 
       render();
     </script>
+  <script>
+    (function () {
+      var toggle = document.getElementById("filterToggle");
+      var panel = document.getElementById("filterPanel");
+      var clear = document.getElementById("filterClear");
+      var sum = document.getElementById("filterSummary");
+      if (!toggle || !panel) return;
+      function activeNames() {
+        var out = [];
+        var m = document.querySelector('#monthRow .chip[aria-pressed="true"]');
+        if (m && m.getAttribute("data-month") !== "all") out.push(m.textContent.trim());
+        var c = document.querySelector('#catRow .chip[aria-pressed="true"]');
+        if (c && c.getAttribute("data-cat") !== "all") out.push(c.textContent.trim());
+        var r = document.querySelector('#regionRow .chip[aria-pressed="true"]');
+        if (r && r.getAttribute("data-region") !== "all") out.push(r.textContent.trim());
+        return out;
+      }
+      function refresh() {
+        var n = activeNames();
+        sum.textContent = n.length ? "\u00B7 " + n.join(" \u00B7 ") : "";
+        clear.hidden = !n.length;
+      }
+      function setOpen(open) {
+        panel.classList.toggle("collapsed", !open);
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.classList.toggle("closed", !open);
+      }
+      toggle.addEventListener("click", function () { setOpen(panel.classList.contains("collapsed")); });
+      clear.addEventListener("click", function () {
+        ['#monthRow [data-month="all"]', '#catRow [data-cat="all"]', '#regionRow [data-region="all"]'].forEach(function (sel) {
+          var b = document.querySelector(sel);
+          if (b) b.click();
+        });
+        setTimeout(refresh, 0);
+      });
+      panel.addEventListener("click", function () { setTimeout(refresh, 0); });
+      if (window.innerWidth < 760) setOpen(false);
+      refresh();
+    })();
+  </script>
+
   </body>
 </html>
